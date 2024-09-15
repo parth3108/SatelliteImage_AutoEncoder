@@ -8,5 +8,10 @@
 *.pyo
 *.pyd
 
+# Ignore node_modules for node and bun
+**/node_modules/
+
+
+
 
 
