@@ -2,6 +2,9 @@
 **/venv/
 **/.env/
 
+# Ignore dataset files
+**/dataset/
+
 # Ignore Python cache files
 **/__pycache__/
 *.pyc
