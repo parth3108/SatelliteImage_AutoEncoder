@@ -14,7 +14,9 @@
 # Ignore node_modules for node and bun
 **/node_modules/
 
+**/*.db
+**/*.tar.gz
 
-
-
-
+**/.jpg
+**/.png
+**/.tif
