@@ -1,0 +1,191 @@
+{
+    "Demo 1": {
+        "pipelineName": "Demo 1",
+        "rawPipeline": [
+            {
+                "module": "dataset_loader",
+                "method": "load_by_url",
+                "parameters": [
+                    {
+                        "field": "url",
+                        "type": "str",
+                        "value": "http://127.0.0.1:5500/RawImages.zip"
+                    },
+                    {
+                        "field": "file_name",
+                        "type": "str",
+                        "value": "RawImages.zip"
+                    }
+                ]
+            },
+            {
+                "module": "dataset_loader",
+                "method": "unzip_file",
+                "parameters": [
+                    {
+                        "field": "zip_file_path_or_name",
+                        "type": "str",
+                        "value": "RawImages.zip"
+                    },
+                    {
+                        "field": "destination_folder",
+                        "type": "str",
+                        "value": "RawImages"
+                    }
+                ]
+            },
+            {
+                "module": "pre_processor",
+                "method": "convert_ms_to_rgb",
+                "parameters": [
+                    {
+                        "field": "input_path",
+                        "type": "str",
+                        "value": "/Users/yashpulse/Desktop/Swinburne/Semester 4/TAP/CH1/api/data/dataset/RawImages"
+                    },
+                    {
+                        "field": "output_folder",
+                        "type": "str",
+                        "value": "/Users/yashpulse/Desktop/Swinburne/Semester 4/TAP/CH1/api/data/dataset/ProcessedImages"
+                    },
+                    {
+                        "field": "bands",
+                        "type": "list",
+                        "value": "3,2,1"
+                    }
+                ]
+            },
+            {
+                "module": "compressor",
+                "method": "compress_jpeg",
+                "parameters": [
+                    {
+                        "field": "input_path",
+                        "type": "str",
+                        "value": "/Users/yashpulse/Desktop/Swinburne/Semester 4/TAP/CH1/api/data/dataset/ProcessedImages"
+                    },
+                    {
+                        "field": "output_folder",
+                        "type": "str",
+                        "value": "/Users/yashpulse/Desktop/Swinburne/Semester 4/TAP/CH1/api/data/dataset/CompressedImages"
+                    },
+                    {
+                        "field": "quality",
+                        "type": "int",
+                        "value": "70"
+                    }
+                ]
+            },
+            {
+                "module": "simulated_noise_injector",
+                "method": "add_gaussian_noise",
+                "parameters": [
+                    {
+                        "field": "input_path",
+                        "type": "str",
+                        "value": "/Users/yashpulse/Desktop/Swinburne/Semester 4/TAP/CH1/api/data/dataset/CompressedImages"
+                    },
+                    {
+                        "field": "file_type",
+                        "type": "str",
+                        "value": "jpg"
+                    },
+                    {
+                        "field": "output_folder",
+                        "type": "str",
+                        "value": "/Users/yashpulse/Desktop/Swinburne/Semester 4/TAP/CH1/api/data/dataset/NoisyImages"
+                    },
+                    {
+                        "field": "mean",
+                        "type": "int",
+                        "value": "1"
+                    },
+                    {
+                        "field": "var",
+                        "type": "float",
+                        "value": "0.04"
+                    }
+                ]
+            },
+            {
+                "module": "decompressor",
+                "method": "decompress_jpeg",
+                "parameters": [
+                    {
+                        "field": "input_path",
+                        "type": "str",
+                        "value": "/Users/yashpulse/Desktop/Swinburne/Semester 4/TAP/CH1/api/data/dataset/NoisyImages"
+                    },
+                    {
+                        "field": "output_folder",
+                        "type": "str",
+                        "value": "/Users/yashpulse/Desktop/Swinburne/Semester 4/TAP/CH1/api/data/dataset/DeCompressedImages"
+                    }
+                ]
+            },
+            {
+                "module": "evaluator",
+                "method": "evaluate",
+                "parameters": [
+                    {
+                        "field": "evaluation_id",
+                        "type": "str",
+                        "value": "Input_decompressed"
+                    },
+                    {
+                        "field": "input_type",
+                        "type": "str",
+                        "value": "input_image_path"
+                    },
+                    {
+                        "field": "output_type",
+                        "type": "str",
+                        "value": "decompressed_image_path"
+                    }
+                ]
+            },
+            {
+                "module": "evaluator",
+                "method": "evaluate",
+                "parameters": [
+                    {
+                        "field": "evaluation_id",
+                        "type": "str",
+                        "value": "input_compressed"
+                    },
+                    {
+                        "field": "input_type",
+                        "type": "str",
+                        "value": "input_image_path"
+                    },
+                    {
+                        "field": "output_type",
+                        "type": "str",
+                        "value": "compressed_image_path"
+                    }
+                ]
+            },
+            {
+                "module": "evaluator",
+                "method": "evaluate",
+                "parameters": [
+                    {
+                        "field": "evaluation_id",
+                        "type": "str",
+                        "value": "input_noisy"
+                    },
+                    {
+                        "field": "input_type",
+                        "type": "str",
+                        "value": "input_image_path"
+                    },
+                    {
+                        "field": "output_type",
+                        "type": "str",
+                        "value": "noisy_image_path"
+                    }
+                ]
+            }
+        ]
+    }
+}

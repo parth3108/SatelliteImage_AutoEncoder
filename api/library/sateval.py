@@ -22,7 +22,7 @@ class SatEval:
     __connection:sqlite3.Connection
 
     def __init__(self,dataset_dir:str):
-        self.__connection = sqlite3.connect('sateval.db')
+        self.__connection = sqlite3.connect('sateval.db',check_same_thread=False,autocommit=True)
         self.dataset_loader = DatasetLoader(f"data/{dataset_dir}",self.__connection)
         self.configurables = Configurables()
         self.pre_processor = PreProcessor()
@@ -41,7 +41,7 @@ class SatEval:
                     "CREATE TABLE IF NOT EXISTS extracted_datasets (id INTEGER PRIMARY KEY AUTOINCREMENT, zip_file_path TEXT, destination_folder TEXT)"
             )
             self.__connection.execute(
-                    "CREATE TABLE IF NOT EXISTS image_data (id INTEGER PRIMARY KEY AUTOINCREMENT,run_id TEXT,input_image_path TEXT, compressed_image_path TEXT, noisy_image_path TEXT,decompressed_image_path TEXT, input_image_size INTEGER, compressed_image_size INTEGER, noisy_image_size INTEGER, decompressed_image_size INTEGER,compression_time REAL, decompression_time REAL,results TEXT)"
+                    "CREATE TABLE IF NOT EXISTS image_data (id INTEGER PRIMARY KEY AUTOINCREMENT,run_id TEXT,height INT,width INT,input_image_path TEXT, compressed_image_path TEXT, noisy_image_path TEXT,decompressed_image_path TEXT, input_image_size INTEGER, compressed_image_size INTEGER, noisy_image_size INTEGER, decompressed_image_size INTEGER,compression_time REAL, decompression_time REAL,results TEXT)"
             )
             self.__connection.commit()
 

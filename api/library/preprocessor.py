@@ -5,6 +5,7 @@ from PIL import Image
 import sqlite3
 import os
 from tqdm import tqdm
+import json
 
 class PreProcessor:
 
@@ -47,8 +48,8 @@ class PreProcessor:
             try:
                 self.__convert_ms_to_rgb(tiff_file,output_folder,bands)
                 to_return["success"] += 1
-                yield to_return
+                yield json.dumps(to_return)
             except Exception as e:
                 to_return["failed"] += 1
-                yield to_return
+                yield json.dumps(to_return)
                 continue

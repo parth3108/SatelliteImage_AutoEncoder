@@ -36,5 +36,19 @@ class PreProcessor:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder, exist_ok=True)
 
+
+        to_return = {
+            "success":0,
+            "failed":0,
+            "total":len(tiff_files)
+        }
+
         for tiff_file in tqdm(tiff_files):
-            self.__convert_ms_to_rgb(tiff_file,output_folder,bands)
+            try:
+                self.__convert_ms_to_rgb(tiff_file,output_folder,bands)
+                to_return["success"] += 1
+                yield to_return
+            except Exception as e:
+                to_return["failed"] += 1
+                yield to_return
+                continue

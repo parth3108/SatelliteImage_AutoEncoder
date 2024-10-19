@@ -4,6 +4,7 @@ import sqlite3
 from tqdm import tqdm
 from PIL import Image
 import time
+import json
 
 
 class Decompressor:
@@ -79,8 +80,21 @@ class Decompressor:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder, exist_ok=True)
 
+        to_return = {
+            "success":0,
+            "failed":0,
+            "total":len(tiff_files)
+        }
+
         for tiff_file in tqdm(tiff_files):
-            self.__decompress_jpeg(tiff_file,output_folder,run_id)
+            try:
+                self.__decompress_jpeg(tiff_file,output_folder,run_id)
+                to_return["success"] += 1
+                yield json.dumps(to_return)
+            except Exception as e:
+                to_return["failed"] += 1
+                yield json.dumps(to_return)
+                continue
 
     def decompress_png(self, input_path:str, output_folder:str,run_id:str):
         
@@ -96,5 +110,48 @@ class Decompressor:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder, exist_ok=True)
 
+        to_return = {
+            "success":0,
+            "failed":0,
+            "total":len(tiff_files)
+        }
+
         for tiff_file in tqdm(tiff_files):
-            self.__decompress_png(tiff_file,output_folder,run_id)
+            try:
+                self.__decompress_png(tiff_file,output_folder,run_id)
+                to_return["success"] += 1
+                yield json.dumps(to_return)
+            except Exception as e:
+                to_return["failed"] += 1
+                yield json.dumps(to_return)
+                continue
+        
+    def decompress_dl_decoder(self, input_path:str, output_folder:str,run_id:str):
+        
+        # if the input path is a file, convert that file
+        if os.path.isfile(input_path):
+            self.__decompress_jpeg(input_path,output_folder,run_id)
+            return
+
+        # Get all tiff files in the folder even in subdirectories
+        tiff_files = glob.glob(f"{input_path}/**/*.jpg", recursive=True)
+
+        # Create the output folder if it does not exist
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder, exist_ok=True)
+
+        to_return = {
+            "success":0,
+            "failed":0,
+            "total":len(tiff_files)
+        }
+
+        for tiff_file in tqdm(tiff_files):
+            try:
+                self.__decompress_jpeg(tiff_file,output_folder,run_id)
+                to_return["success"] += 1
+                yield json.dumps(to_return)
+            except Exception as e:
+                to_return["failed"] += 1
+                yield json.dumps(to_return)
+                continue

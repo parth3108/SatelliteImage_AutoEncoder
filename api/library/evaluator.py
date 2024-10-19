@@ -1,3 +1,5 @@
+import base64
+from io import BytesIO
 import sqlite3
 import numpy as np
 from skimage.metrics import peak_signal_noise_ratio as psnr
@@ -9,7 +11,7 @@ from torchvision import transforms
 from PIL import Image
 from tqdm import tqdm
 import json
-
+import pandas as pd
 
 class Evaluator:
 
@@ -277,6 +279,12 @@ class Evaluator:
         if len(result) == 0:
             raise ValueError("No images found for the specified run and evaluation.")
         
+        to_return = {
+            "success":0,
+            "failed":0,
+            "total":len(result)
+        }
+        
         for row in tqdm(result):
             input_file_path = row[0]
             output_file_path = row[1]            
@@ -289,10 +297,17 @@ class Evaluator:
             if row[2] is None:
                 results = {}            
             else:
-                results = row[2]
+                results = json.loads(row[2])
                     
-
-            results[evaluation_id] = self.__evaluate(input_file_path,output_file_path,lpips_model)
+            try:
+                results[evaluation_id] = self.__evaluate(input_file_path,output_file_path,lpips_model)
+                to_return["success"] += 1
+                yield json.dumps(to_return)
+            except Exception as e:
+                results[evaluation_id] = str(e)
+                to_return["failed"] += 1
+                yield json.dumps(to_return)
+                continue
 
             with self.__connection:
                 self.__connection.execute(
@@ -301,3 +316,112 @@ class Evaluator:
                     WHERE id = ?""",
                     (json.dumps(results), id)
                 )
+
+
+    def get_run_ids(self):
+        """
+        Get the unique run IDs from the database.
+        
+        Returns:
+            run_ids: list - List of unique run IDs.
+        """
+        with self.__connection:
+            cursor = self.__connection.cursor()
+            cursor.execute(
+                """SELECT DISTINCT run_id
+                FROM image_data"""
+            )
+            run_ids = [row[0] for row in cursor.fetchall()]
+            cursor.close()
+
+        if len(run_ids) >= 1:
+            return run_ids
+        else:
+            raise ValueError("No run IDs found in the database.")
+            
+
+    def get_evaluation_ids(self,run_id:str):
+        """
+        Get the unique evaluation IDs from the database.
+        
+        Returns:
+            evaluation_ids: list - List of unique evaluation IDs.
+        """
+        with self.__connection:
+            cursor = self.__connection.cursor()
+            cursor.execute(
+                """SELECT results
+                FROM image_data WHERE run_id = ?""",
+                (run_id,)
+            )
+            results = [row[0] for row in cursor.fetchall()]
+            cursor.close()        
+
+        evaluation_ids = set()        
+        for result in results:
+            if result is not None:
+                evaluation_ids.update(json.loads(result).keys())
+
+        if len(evaluation_ids) >= 1:
+            return evaluation_ids
+        else:
+            raise ValueError("No evaluation IDs found in the database.")
+            
+    def get_results_by_run_id(self,run_id:str):
+        """
+        Get the evaluation results for a specific run ID.
+        
+        Parameters:
+            run_id: str - Unique identifier for the current run.
+        
+        Returns:
+            results: dict - Dictionary containing evaluation results for the run.
+        """
+        with self.__connection:
+            df = pd.read_sql_query(f"""SELECT *
+            FROM image_data
+            WHERE run_id = '{run_id}'""", self.__connection)
+
+
+        if df.empty:
+            raise ValueError("No images found for the specified run.")
+        
+        df_filled = df.replace(to_replace=np.nan, value=None)
+        
+        return df_filled.to_dict(orient='records')
+    
+    def get_evalauation_fields(self):
+        return [                        
+            "input_image_path",
+            "compressed_image_path",
+            "decompressed_image_path",            
+            "noisy_image_path"
+        ]
+        
+
+    def get_image_by_path(self,path:str):
+        """
+        Get the image data from the database based on the file path.
+        
+        Parameters:
+            path: str - File path of the image.
+
+        """
+
+        # get image from and return base64 no need to use database
+        try:                                
+            with open(path, "rb") as image_file:
+                if path.lower().endswith('.tiff') or path.lower().endswith('.tif'):
+                    image = Image.open(image_file)
+                    with BytesIO() as buffer:
+                        image.save(buffer, format="PNG")
+                        base64_string = base64.b64encode(buffer.getvalue()).decode('utf-8')
+                        return base64_string
+                # If image is in tiff format, convert it to PNG format and then encode                
+                base64_string = base64.b64encode(image_file.read()).decode('utf-8')
+                return base64_string
+        except Exception as e:
+            raise ValueError(f"Error reading image file: {str(e)}")            
+            
+
+            

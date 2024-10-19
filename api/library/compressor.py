@@ -4,7 +4,7 @@ import sqlite3
 from tqdm import tqdm
 from PIL import Image
 import time
-
+import json
 
 class Compressor:
     
@@ -20,8 +20,8 @@ class Compressor:
         with Image.open(input_path) as img:     
             with self.__connection:      
                 self.__connection.execute(
-                    """INSERT INTO image_data (run_id, input_image_path, input_image_size) VALUES (?, ?, ?)""",
-                    (run_id, input_path,input_file_size )
+                    """INSERT INTO image_data (run_id, height,width,input_image_path, input_image_size) VALUES (?, ?,?,?, ?)""",
+                    (run_id, img.height,img.width,input_path,input_file_size )
                 )                
             img.save(f"{output_folder}/{file_name.replace('.tif','')}.png", "PNG", optimize=True, quality=quality)
             end_time = time.perf_counter()
@@ -44,11 +44,12 @@ class Compressor:
         file_name = input_path.split("/")[-1]
         input_file_size = os.path.getsize(input_path)
         start_time = time.perf_counter()
-        with Image.open(input_path) as img:     
+        with Image.open(input_path) as img:   
+            print(img.height,img.width)  
             with self.__connection:      
                 self.__connection.execute(
-                    """INSERT INTO image_data (run_id, input_image_path, input_image_size) VALUES (?, ?, ?)""",
-                    (run_id, input_path,input_file_size )
+                    """INSERT INTO image_data (run_id, height,width,input_image_path, input_image_size) VALUES (?,?,?, ?, ?)""",
+                    (run_id,img.height,img.width, input_path,input_file_size )
                 )                
             img.save(f"{output_folder}/{file_name.replace('.tif','')}.jpg", "JPEG", quality=quality)
             # Update the compressed image path and size in the database
@@ -80,8 +81,22 @@ class Compressor:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder, exist_ok=True)
 
+        to_return = {
+            "success":0,
+            "failed":0,
+            "total":len(tiff_files)
+        }
+
         for tiff_file in tqdm(tiff_files):
-            self.__compress_png(tiff_file,output_folder,quality,run_id)
+            try:
+                self.__compress_png(tiff_file,output_folder,quality,run_id)
+                to_return["success"] += 1
+                yield json.dumps(to_return)
+            except Exception as e:
+                to_return["failed"] += 1
+                yield json.dumps(to_return)
+                yield str(e)
+                continue
 
     def compress_jpeg(self,input_path:str, output_folder:str,quality:int,run_id:str):
         
@@ -96,5 +111,49 @@ class Compressor:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder, exist_ok=True)
 
+        to_return = {
+            "success":0,
+            "failed":0,
+            "total":len(tiff_files)
+        }
+
         for tiff_file in tqdm(tiff_files):
-            self.__compress_jpeg(tiff_file,output_folder,quality,run_id)
+            try:
+                self.__compress_jpeg(tiff_file,output_folder,quality,run_id)
+                to_return["success"] += 1
+                yield json.dumps(to_return)
+            except Exception as e:
+                to_return["failed"] += 1
+                yield json.dumps(to_return)
+                yield str(e)
+                continue
+
+    def compress_dl_encoder(self,input_path:str, output_folder:str,quality:int,run_id:str):
+        
+        # if the input path is a file, convert that file
+        if os.path.isfile(input_path):
+            self.__compress_jpeg(input_path,output_folder,quality,run_id)
+            return
+        # Get all tiff files in the folder even in subdirectories
+        tiff_files = glob.glob(f"{input_path}/**/*.tif", recursive=True)
+
+        # Create the output folder if it does not exist
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder, exist_ok=True)
+
+        to_return = {
+            "success":0,
+            "failed":0,
+            "total":len(tiff_files)
+        }
+
+        for tiff_file in tqdm(tiff_files):
+            try:
+                self.__compress_jpeg(tiff_file,output_folder,quality,run_id)
+                to_return["success"] += 1
+                yield json.dumps(to_return)
+            except Exception as e:
+                to_return["failed"] += 1
+                yield json.dumps(to_return)
+                yield str(e)
+                continue

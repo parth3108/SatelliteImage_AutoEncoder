@@ -28,7 +28,7 @@ class Configurables:
             }
         ]
     
-    def validate_pipeline_config(self,config:list):
+    def validate_pipeline_config(self,config:list,clf):
         if not isinstance(config,list):
             return False
         
@@ -39,10 +39,18 @@ class Configurables:
                 return False
             if not "params" in item:
                 return False
+        
+        try:
+            for item in config:
+                if not self.validate_config(item,clf):
+                    return False
+        except Exception as ex:
+            raise ex
+                        
             
         return True
     
-    def validate_config(self,config:dict):
+    def validate_config(self,config:dict,clf):
         if not isinstance(config,dict):
             return False
         
@@ -54,6 +62,31 @@ class Configurables:
         for key in keys:
             if not key in config:
                 return False
+        
+        # validate using method and module and signature
+        
+        module = config["execution_path"].split(":")[0]
+        method = config["execution_path"].split(":")[1]
+
+        if not hasattr(clf,module):
+            return False
+        
+        module = getattr(clf,module)
+
+        if not hasattr(module,method):
+            return False
+        
+        method = getattr(module,method)
+
+        signature = inspect.signature(method)
+        params = config["params"]
+
+        for param in params:            
+            if not param in signature.parameters:
+                raise Exception("Parameter {} not found in method signature".format(param))
+            if not isinstance(params[param],signature.parameters[param].annotation):
+                raise Exception("Parameter {} is not of type {}".format(param,signature.parameters[param].annotation)) 
+
             
         return True
     
@@ -79,7 +112,8 @@ class Configurables:
             if "configurables" in name:
                 continue
             
-            modules[name] = type(obj)
+            modules[name] = type(obj).__name__
+
         return modules
     
     def get_methods(self,clf,module_name):
@@ -99,26 +133,35 @@ class Configurables:
                 for param in signature.parameters:
                     if "run_id" in param:
                         continue
-                    parameters[param] = signature.parameters[param].annotation
+                    parameters[param] = str(signature.parameters[param].annotation).replace("<class '","").replace("'>","")
                 methods[name] = {
-                    "type":type(obj),
+                    "type":type(obj).__name__,
                     "parameters":parameters
                 }
                 
             
         return methods
 
-    
-    # dynamically load the module and class and run
 
     def run(self,run_id:str,config:dict,clf):
 
-        for item in config:
-            if not self.validate_config(item):
-                return False     
+        try:
+            for item in config:
+                if not self.validate_config(item,clf):
+                    return    
+        except Exception as ex:
+            yield "Exception: Pipeline config validation failed: {}".format(str(ex))
 
-        for item in config:
-            self.run_item(run_id,item,clf)
+        try:
+            yield "Pipeline with Run ID: {} Started".format(run_id)   
+            for item in config:            
+                for res in self.run_item(run_id,item,clf):
+                    yield res
+        except Exception as ex:
+            yield "Exception: Error running pipeline: {}".format(str(ex))
+
+        yield "Pipeline with Run ID: {} completed".format(run_id)
+        return
 
     def run_item(self,run_id:str,config:dict,clf):
         execution_path = self.get_execution_path(config)
@@ -140,4 +183,9 @@ class Configurables:
                 break
             
         # run the method
-        method(**params)        
+        try:                     
+            yield "Running module: {} method: {} with params: {}".format(module_name,method_name,params)
+            for res in method(**params):
+                yield res            
+        except Exception as ex:
+            yield str(ValueError("Error running method: {}".format(str(ex))))
