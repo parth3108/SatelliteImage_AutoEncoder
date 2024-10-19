@@ -15,9 +15,16 @@
 	onMount(() => {
 		const path = $page.url.pathname;
 		for (const side of helper.SideBarMenu) {
+			if (path === '/') {
+				sideBarActiveKey = 'Presentation';
+				sideBarActiveValue = '';
+				break;
+			}
+
 			if (side.path === path) {
 				sideBarActiveKey = side.name;
 				sideBarActiveValue = side;
+				break;
 			}
 			if (side.subMenu) {
 				for (const sub of side.subMenu) {
@@ -25,6 +32,7 @@
 						sideBarActiveKey = side.name;
 						sideBarActiveValue = side;
 						subMenuActiveKey = sub.name;
+						break;
 					}
 				}
 			}
@@ -58,7 +66,7 @@
 			{/each}
 		</div>
 	</Resizable.Pane>
-	{#if sideBarActiveKey !== 'Modules' && sideBarActiveKey !== 'Evaluation'}
+	{#if sideBarActiveKey !== 'Modules' && sideBarActiveKey !== 'Evaluation' && sideBarActiveKey !== 'Presentation'}
 		<Resizable.Handle withHandle />
 		<Resizable.Pane defaultSize={15} minSize={10}>
 			<div class="flex h-full flex-col justify-start">
