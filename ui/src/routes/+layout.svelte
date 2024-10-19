@@ -1,4 +1,6 @@
 <script lang="js">
+	export const prerender = true;
+	export const ssr = false;
 	import '../app.css';
 	import * as Resizable from '$lib/components/ui/resizable/index.js';
 	import * as helper from '$lib/internal/helper/index.js';
