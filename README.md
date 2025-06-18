@@ -11,12 +11,12 @@ This system simulates the end-to-end lifecycle of satellite image transmission:
 ---
 # Key Features
 
-- 📦 **Modular pipeline design** for flexibility and extensibility
-- 🛰️ **Simulated noise injection** to test real-world resilience
-- 🧪 **Evaluation dashboard** with PSNR, SSIM, MSE, and LPIPS metrics
-- 🗃️ **SQLite database** to track results and manage runs
-- 📁 **Visual interface** for managing datasets and pipelines
-- ⚙️ **Custom pipeline execution** through configuration templates
+-  **Modular pipeline design** for flexibility and extensibility
+-  **Simulated noise injection** to test real-world resilience
+-  **Evaluation dashboard** with PSNR, SSIM, MSE, and LPIPS metrics
+-  **SQLite database** to track results and manage runs
+-  **Visual interface** for managing datasets and pipelines
+-  **Custom pipeline execution** through configuration templates
 
 ---
 
